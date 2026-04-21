@@ -1,6 +1,9 @@
 import requests
 from typing import Any
 
+from exceptions import APIException
+from countries import get_country_name
+
 GENDERIZE_URL = "https://api.genderize.io"
 AGIFY_URL = "https://api.agify.io"
 NATIONALIZE_URL = "https://api.nationalize.io"
@@ -8,10 +11,12 @@ NATIONALIZE_URL = "https://api.nationalize.io"
 TIMEOUT_SEC = 10
 
 
-class ExternalAPIError(Exception):
+class ExternalAPIError(APIException):
     def __init__(self, api_name: str) -> None:
-        self.api_name = api_name
-        super().__init__(f"{api_name} returned an invalid response")
+        super().__init__(
+            f"{api_name} returned an invalid response",
+            status_code=502,
+        )
 
 
 def classify_age_group(age: int) -> str:
@@ -44,7 +49,6 @@ def fetch_gender(name: str) -> dict[str, Any]:
     return {
         "gender": gender,
         "gender_probability": round(data.get("probability", 0.0), 2),
-        "sample_size": count,
     }
 
 
@@ -83,9 +87,11 @@ def fetch_nationality(name: str) -> dict[str, Any]:
         raise ExternalAPIError("Nationalize")
 
     top = max(countries, key=lambda c: c.get("probability", 0.0))
+    country_id = top.get("country_id", "")
 
     return {
-        "country_id": top.get("country_id", ""),
+        "country_id": country_id,
+        "country_name": get_country_name(country_id),
         "country_probability": round(top.get("probability", 0.0), 2),
     }
 
