@@ -167,3 +167,14 @@ def delete_profile_by_id(profile_id: str) -> bool:
         return cursor.rowcount > 0
     finally:
         conn.close()
+
+
+def profile_exists_by_name(name: str) -> bool:
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM profiles WHERE LOWER(name) = LOWER(?)", (name,)
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
