@@ -1,0 +1,8 @@
+{
+  "venv": ".",
+  "typeCheckingMode": "basic",
+  "reportUnusedFunction": "none",
+  "reportUnusedParameter": "none",
+  "reportExplicitAny": "none",
+  "reportAny": "none"
+}
