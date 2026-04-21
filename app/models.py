@@ -19,14 +19,27 @@ def init_db() -> None:
                 name TEXT NOT NULL UNIQUE,
                 gender TEXT NOT NULL,
                 gender_probability REAL NOT NULL,
-                sample_size INTEGER NOT NULL,
                 age INTEGER NOT NULL,
                 age_group TEXT NOT NULL,
                 country_id TEXT NOT NULL,
+                country_name TEXT NOT NULL,
                 country_probability REAL NOT NULL,
                 created_at TEXT NOT NULL
             )
         """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_profiles_gender ON profiles(gender)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_profiles_age_group ON profiles(age_group)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_profiles_country_id ON profiles(country_id)"
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_profiles_age ON profiles(age)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at)"
+        )
         conn.commit()
     finally:
         conn.close()
