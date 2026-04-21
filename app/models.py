@@ -95,24 +95,66 @@ def get_all_profiles(
     gender: str | None = None,
     country_id: str | None = None,
     age_group: str | None = None,
-) -> list[dict[str, Any]]:
+    min_age: int | None = None,
+    max_age: int | None = None,
+    min_gender_probability: float | None = None,
+    min_country_probability: float | None = None,
+    sort_by: str = "created_at",
+    order: str = "desc",
+    page: int = 1,
+    limit: int = 10,
+) -> tuple[list[dict[str, Any]], int]:
+    """Return (profiles_list, total_count) for pagination metadata."""
     conn = get_connection()
     try:
-        query = "SELECT * FROM profiles WHERE 1=1"
-        params: list[str] = []
+        where_clauses: list[str] = []
+        params: list[Any] = []
 
         if gender is not None:
-            query += " AND LOWER(gender) = LOWER(?)"
+            where_clauses.append("LOWER(gender) = LOWER(?)")
             params.append(gender)
         if country_id is not None:
-            query += " AND LOWER(country_id) = LOWER(?)"
+            where_clauses.append("LOWER(country_id) = LOWER(?)")
             params.append(country_id)
         if age_group is not None:
-            query += " AND LOWER(age_group) = LOWER(?)"
+            where_clauses.append("LOWER(age_group) = LOWER(?)")
             params.append(age_group)
+        if min_age is not None:
+            where_clauses.append("age >= ?")
+            params.append(min_age)
+        if max_age is not None:
+            where_clauses.append("age <= ?")
+            params.append(max_age)
+        if min_gender_probability is not None:
+            where_clauses.append("gender_probability >= ?")
+            params.append(min_gender_probability)
+        if min_country_probability is not None:
+            where_clauses.append("country_probability >= ?")
+            params.append(min_country_probability)
 
-        rows = conn.execute(query, params).fetchall()
-        return [row_to_dict(row) for row in rows]
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        count_row = conn.execute(
+            f"SELECT COUNT(*) as total FROM profiles WHERE {where_sql}",
+            params,
+        ).fetchone()
+        total = count_row["total"] if count_row else 0
+
+        allowed_sort = {"age", "created_at", "gender_probability"}
+        if sort_by not in allowed_sort:
+            sort_by = "created_at"
+        order_sql = "ASC" if order.lower() == "asc" else "DESC"
+
+        offset = (page - 1) * limit
+        query = f"""
+            SELECT * FROM profiles
+            WHERE {where_sql}
+            ORDER BY {sort_by} {order_sql}
+            LIMIT ? OFFSET ?
+        """
+        params_with_pagination = params + [limit, offset]
+        rows = conn.execute(query, params_with_pagination).fetchall()
+        return [row_to_dict(row) for row in rows], total
     finally:
         conn.close()
 
