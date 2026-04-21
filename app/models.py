@@ -1,6 +1,8 @@
 import sqlite3
 from typing import Any
 
+from exceptions import APIException
+
 DB_PATH = "profiles.db"
 
 
@@ -55,16 +57,20 @@ def insert_profile(profile: dict[str, Any]) -> None:
         conn.execute(
             """
             INSERT INTO profiles (
-                id, name, gender, gender_probability, sample_size,
-                age, age_group, country_id, country_probability, created_at
+                id, name, gender, gender_probability,
+                age, age_group, country_id, country_name, country_probability, created_at
             ) VALUES (
-                :id, :name, :gender, :gender_probability, :sample_size,
-                :age, :age_group, :country_id, :country_probability, :created_at
+                :id, :name, :gender, :gender_probability,
+                :age, :age_group, :country_id, :country_name, :country_probability, :created_at
             )
             """,
             profile,
         )
         conn.commit()
+    except sqlite3.IntegrityError as exc:
+        if "UNIQUE constraint failed" in str(exc):
+            raise APIException("Profile with this name already exists", 409)
+        raise
     finally:
         conn.close()
 
